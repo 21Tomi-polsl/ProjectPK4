@@ -16,8 +16,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QLabel,
-    QMainWindow, QMenuBar, QPushButton, QSizePolicy,
-    QStatusBar, QWidget)
+    QLineEdit, QMainWindow, QMenuBar, QPushButton,
+    QSizePolicy, QStatusBar, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -81,22 +81,27 @@ class Ui_MainWindow(object):
         self.chooseModel.setMinimumContentsLength(3)
         self.fileLabel = QLabel(self.centralwidget)
         self.fileLabel.setObjectName(u"fileLabel")
-        self.fileLabel.setGeometry(QRect(100, 120, 101, 41))
+        self.fileLabel.setGeometry(QRect(50, 120, 241, 41))
         self.fileLabel.setFont(font2)
         self.fileLabel.setAutoFillBackground(False)
         self.fileLabel.setScaledContents(True)
         self.fileLabel.setWordWrap(True)
         self.loadCSV = QPushButton(self.centralwidget)
         self.loadCSV.setObjectName(u"loadCSV")
-        self.loadCSV.setGeometry(QRect(100, 160, 75, 24))
+        self.loadCSV.setGeometry(QRect(80, 160, 75, 24))
         self.loadCSV.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.fileName = QLabel(self.centralwidget)
         self.fileName.setObjectName(u"fileName")
-        self.fileName.setGeometry(QRect(100, 190, 71, 20))
+        self.fileName.setGeometry(QRect(80, 190, 71, 20))
+        self.tickerEdit = QLineEdit(self.centralwidget)
+        self.tickerEdit.setObjectName(u"tickerEdit")
+        self.tickerEdit.setGeometry(QRect(170, 160, 113, 22))
+        self.tickerEdit.setMaxLength(5)
+        self.tickerEdit.setClearButtonEnabled(False)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 600, 33))
+        self.menubar.setGeometry(QRect(0, 0, 600, 18))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -123,7 +128,7 @@ class Ui_MainWindow(object):
 
         self.chooseModel.setCurrentText(QCoreApplication.translate("MainWindow", u"LSTM", None))
         self.chooseModel.setPlaceholderText("")
-        self.fileLabel.setText(QCoreApplication.translate("MainWindow", u"Choose file ", None))
+        self.fileLabel.setText(QCoreApplication.translate("MainWindow", u"Choose file or ticker symbol", None))
         self.loadCSV.setText(QCoreApplication.translate("MainWindow", u"Load CSV", None))
         self.fileName.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
     # retranslateUi

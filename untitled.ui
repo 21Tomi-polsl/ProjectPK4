@@ -208,9 +208,9 @@
    <widget class="QLabel" name="fileLabel">
     <property name="geometry">
      <rect>
-      <x>100</x>
+      <x>50</x>
       <y>120</y>
-      <width>101</width>
+      <width>241</width>
       <height>41</height>
      </rect>
     </property>
@@ -224,7 +224,7 @@
      <bool>false</bool>
     </property>
     <property name="text">
-     <string>Choose file </string>
+     <string>Choose file or ticker symbol</string>
     </property>
     <property name="scaledContents">
      <bool>true</bool>
@@ -236,7 +236,7 @@
    <widget class="QPushButton" name="loadCSV">
     <property name="geometry">
      <rect>
-      <x>100</x>
+      <x>80</x>
       <y>160</y>
       <width>75</width>
       <height>24</height>
@@ -252,7 +252,7 @@
    <widget class="QLabel" name="fileName">
     <property name="geometry">
      <rect>
-      <x>100</x>
+      <x>80</x>
       <y>190</y>
       <width>71</width>
       <height>20</height>
@@ -262,6 +262,22 @@
      <string>TextLabel</string>
     </property>
    </widget>
+   <widget class="QLineEdit" name="tickerEdit">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>160</y>
+      <width>113</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="maxLength">
+     <number>5</number>
+    </property>
+    <property name="clearButtonEnabled">
+     <bool>false</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -269,7 +285,7 @@
      <x>0</x>
      <y>0</y>
      <width>600</width>
-     <height>33</height>
+     <height>18</height>
     </rect>
    </property>
   </widget>
