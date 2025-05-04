@@ -21,6 +21,7 @@ class MainWindow(QMainWindow):
         self.ui.load.clicked.connect(self.collect_data)
         self.ui.trainModel.clicked.connect(self.start_train)
         #Checkbox functions
+        self.display_graph = False
 
 #File dialog opener function
     def open_dialog(self):
@@ -33,6 +34,7 @@ class MainWindow(QMainWindow):
 
     def collect_data(self):
         self.tick = self.ui.tickerEdit.text()
+        self.display_graph = self.ui.graphBox.isChecked()
         try:
             p1 = FinanceAPI(self.tick)
             self.lista = p1.gather_info()
@@ -45,7 +47,7 @@ class MainWindow(QMainWindow):
     def start_train(self):
         m1 = Model(self.lista)
         m1.prepare_linreg()
-        predicted_value = m1.linear_regression()
+        predicted_value = m1.linear_regression(self.display_graph)
         self.ui.label.setText(self.tick+" predicted value is "+ str(predicted_value))
 
 #Yfinance API handling class
@@ -55,7 +57,7 @@ class FinanceAPI:
 
     def gather_info(self):
         data = self.ticker.history(period="7d")
-
+#Could be done with regex but is slower
         close_list = data["Close"].tolist()
         open_list = data["Open"].tolist()
         high_list = data["High"].tolist()
@@ -80,7 +82,7 @@ class Model:
 
         self.linRegList = []
 
-
+#Method for preparing variables for linear regression
     def prepare_linreg(self):
 
         div = len(self.open)
@@ -98,7 +100,7 @@ class Model:
         self.linRegList = [self.open, self.openLow, self.openHigh, self.low, self.high, self.closeLow, self.closeHigh, self.close]
 
 
-    def linear_regression(self):
+    def linear_regression(self, displayGraph):
         data = {
             'x':[1,2,3,4,5,6,7,8],
             'y':self.linRegList
@@ -109,13 +111,14 @@ class Model:
         md = LinearRegression()
         md.fit(X, y)
         pred = md.predict(X)
-        plt.scatter(X, y, color='blue')
-        plt.plot(X, pred, color='red')
-        plt.grid(True)
-        plt.show()
+        if displayGraph:
+            plt.scatter(X, y, color='blue')
+            plt.plot(X, pred, color='red')
+            plt.grid(True)
+            plt.show()
         predicted_value = pred[-1]
-        wynik = float(predicted_value[0])
-        return round(wynik, 2)
+        result = float(predicted_value[0])
+        return round(result, 2)
 
 #Main function for running the app
 def main():
