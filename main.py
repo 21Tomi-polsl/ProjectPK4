@@ -15,6 +15,7 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         self.ui.fileName.setVisible(False)
         self.lista = []
+        self.tick = ""
         #Button functions
         self.ui.loadCSV.clicked.connect(self.open_dialog)
         self.ui.load.clicked.connect(self.collect_data)
@@ -31,11 +32,11 @@ class MainWindow(QMainWindow):
 
 
     def collect_data(self):
-        tick = self.ui.tickerEdit.text()
+        self.tick = self.ui.tickerEdit.text()
         try:
-            p1 = FinanceAPI(tick)
+            p1 = FinanceAPI(self.tick)
             self.lista = p1.gather_info()
-            self.ui.label.setText("Your "+tick+" data is ready to be used!")
+            self.ui.label.setText("Your "+self.tick+" data is ready to be used!")
         except:
             self.ui.label.setText("Input data is incorrect, try again!")
 
@@ -43,7 +44,9 @@ class MainWindow(QMainWindow):
 
     def start_train(self):
         m1 = Model(self.lista)
-        m1.linear_regression()
+        m1.prepare_linreg()
+        predicted_value = m1.linear_regression()
+        self.ui.label.setText(self.tick+" predicted value is "+ str(predicted_value))
 
 #Yfinance API handling class
 class FinanceAPI:
@@ -51,30 +54,54 @@ class FinanceAPI:
         self.ticker = yf.Ticker(ticker)
 
     def gather_info(self):
-        data = self.ticker.history(period="1d")
+        data = self.ticker.history(period="7d")
+
         close_list = data["Close"].tolist()
         open_list = data["Open"].tolist()
         high_list = data["High"].tolist()
         low_list = data["Low"].tolist()
-        div = len(open_list)
-        open = sum(open_list)/div
-        close = sum(close_list)/div
-        high = sum(high_list)/div
-        low = sum(low_list)/div
 
-        return [open, low, high, close]
+        return [open_list, low_list, high_list, close_list]
 
 #ML Model class
 class Model:
     def __init__(self, lista):
+        #List for linear regression
         self.lista = lista
+        self.open = lista[0]
+        self.close = lista[3]
+        self.high = lista[2]
+        self.low = lista[1]
+
+        self.openHigh=0
+        self.openLow=0
+        self.closeHigh=0
+        self.closeLow=0
+
+        self.linRegList = []
+
+
+    def prepare_linreg(self):
+
+        div = len(self.open)
+        self.open = sum(self.open) / div
+        self.close = sum(self.close) / div
+        self.high = sum(self.high) / div
+        self.low = sum(self.low) / div
+
+        self.openHigh = (self.open+self.high)/2
+        self.closeHigh = (self.close+self.high)/2
+
+        self.openLow = (self.open+self.low)/2
+        self.closeLow = (self.close+self.low)/2
+
+        self.linRegList = [self.open, self.openLow, self.openHigh, self.low, self.high, self.closeLow, self.closeHigh, self.close]
 
 
     def linear_regression(self):
-        x = [1,2,3,4]
         data = {
-            'x':[1,2,3,4],
-            'y':self.lista
+            'x':[1,2,3,4,5,6,7,8],
+            'y':self.linRegList
         }
         df = pd.DataFrame(data)
         X = df[['x']]
@@ -86,6 +113,9 @@ class Model:
         plt.plot(X, pred, color='red')
         plt.grid(True)
         plt.show()
+        predicted_value = pred[-1]
+        wynik = float(predicted_value[0])
+        return round(wynik, 2)
 
 #Main function for running the app
 def main():
