@@ -2,39 +2,41 @@ import sys
 import yfinance as yf
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog
-from PySide6.QtCore import QFileInfo
+from PySide6.QtWidgets import QApplication, QMainWindow
 from ui_mainwindow import Ui_MainWindow
+
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+from sklearn.preprocessing import MinMaxScaler
+
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
+
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.ui.fileName.setVisible(False)
         self.lista = []
         self.tick = ""
         #Button functions
-        self.ui.loadCSV.clicked.connect(self.open_dialog)
         self.ui.load.clicked.connect(self.collect_data)
         self.ui.trainModel.clicked.connect(self.start_train)
+
         #Checkbox functions
         self.display_graph = False
+        self.display_error = False
 
-#File dialog opener function
-    def open_dialog(self):
-        fname = QFileDialog.getOpenFileName(self, "Open File", "/", "CSV Files (*.csv)")
-        self.ui.fileName.setVisible(True)
-        fi = QFileInfo(fname[0])
-        name = fi.fileName()
-        self.ui.fileName.setText(name)
 
 
     def collect_data(self):
         self.tick = self.ui.tickerEdit.text()
         self.display_graph = self.ui.graphBox.isChecked()
+        self.display_error = self.ui.errorBox.isChecked()
         try:
             p1 = FinanceAPI(self.tick)
             self.lista = p1.gather_info()
@@ -45,25 +47,33 @@ class MainWindow(QMainWindow):
 
 
     def start_train(self):
-        m1 = Model(self.lista)
-        m1.prepare_linreg()
-        predicted_value = m1.linear_regression(self.display_graph)
-        self.ui.label.setText(self.tick+" predicted value is "+ str(predicted_value))
+        mod = self.ui.chooseModel.currentText()
+        if mod == "Regresja liniowa":
+            m1 = Model(self.lista)
+            m1.prepare_linreg()
+            predicted_value = m1.linear_regression(self.display_graph, self.display_error)
+            self.ui.label.setText(self.tick+" predicted value is "+ str(predicted_value))
+        else:
+            m1 = Model(self.lista)
+            list = m1.prepare_lstm()
+            m1.train_LSTM(list)
 
 #Yfinance API handling class
 class FinanceAPI:
     def __init__(self, ticker):
         self.ticker = yf.Ticker(ticker)
+        print(self.ticker)
 
     def gather_info(self):
-        data = self.ticker.history(period="7d")
-#Could be done with regex but is slower
+        data = self.ticker.history(period="1mo")
+        print(data)
         close_list = data["Close"].tolist()
         open_list = data["Open"].tolist()
         high_list = data["High"].tolist()
         low_list = data["Low"].tolist()
+        volume_list = data["Volume"].tolist()
 
-        return [open_list, low_list, high_list, close_list]
+        return [open_list, low_list, high_list, close_list, volume_list]
 
 #ML Model class
 class Model:
@@ -71,9 +81,10 @@ class Model:
         #List for linear regression
         self.lista = lista
         self.open = lista[0]
-        self.close = lista[3]
-        self.high = lista[2]
         self.low = lista[1]
+        self.high = lista[2]
+        self.close = lista[3]
+        self.volume = lista[4]
 
         self.openHigh=0
         self.openLow=0
@@ -81,6 +92,7 @@ class Model:
         self.closeLow=0
 
         self.linRegList = []
+        self.lstmlist = {}
 
 #Method for preparing variables for linear regression
     def prepare_linreg(self):
@@ -100,7 +112,7 @@ class Model:
         self.linRegList = [self.open, self.openLow, self.openHigh, self.low, self.high, self.closeLow, self.closeHigh, self.close]
 
 
-    def linear_regression(self, displayGraph):
+    def linear_regression(self, displayGraph, displayError):
         data = {
             'x':[1,2,3,4,5,6,7,8],
             'y':self.linRegList
@@ -116,9 +128,52 @@ class Model:
             plt.plot(X, pred, color='red')
             plt.grid(True)
             plt.show()
+
+        if displayError:
+            mae = mean_absolute_error(y, pred)
+            print(mae)
+
         predicted_value = pred[-1]
         result = float(predicted_value[0])
         return round(result, 2)
+
+    def prepare_lstm(self):
+        self.lstmlist = {
+            'Open':self.open,
+            'High':self.high,
+            'Low':self.low,
+            'Close':self.close,
+            'Volume':self.volume
+        }
+        df = pd.DataFrame(self.lstmlist)
+
+        scaler = MinMaxScaler()
+        scaled_data = scaler.fit_transform(df)
+
+
+        def create_sequences(data, seq_len):
+            X = []
+            y = []
+            for i in range(len(data)-seq_len):
+                X.append(data[i:i+seq_len])
+                y.append(data[i+seq_len, 3])
+            return np.array(X), np.array(y)
+
+        seq_length = 3
+        X, y = create_sequences(scaled_data, seq_length)
+        return [X, y]
+
+    def train_LSTM(self, list):
+        model = Sequential()
+        X = list[0]
+        y = list[1]
+        model.add(LSTM(30, input_shape=(X.shape[1], X.shape[2])))
+        model.add(Dense(1))
+        model.compile(optimizer='adam', loss='mse')
+        model.fit(X, y, epochs=20, batch_size=1)
+        pred = model.predict(X)
+        print(pred)
+
 
 #Main function for running the app
 def main():

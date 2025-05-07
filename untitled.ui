@@ -86,7 +86,7 @@
     <property name="geometry">
      <rect>
       <x>240</x>
-      <y>340</y>
+      <y>310</y>
       <width>131</width>
       <height>61</height>
      </rect>
@@ -140,8 +140,8 @@
    <widget class="QLabel" name="modelLabel">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>220</y>
+      <x>100</x>
+      <y>210</y>
       <width>171</width>
       <height>41</height>
      </rect>
@@ -168,10 +168,10 @@
    <widget class="QComboBox" name="chooseModel">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>260</y>
-      <width>121</width>
-      <height>21</height>
+      <x>100</x>
+      <y>250</y>
+      <width>131</width>
+      <height>31</height>
      </rect>
     </property>
     <property name="cursor">
@@ -196,11 +196,6 @@
     </item>
     <item>
      <property name="text">
-      <string>Random Forest</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
       <string>LSTM</string>
      </property>
     </item>
@@ -208,9 +203,9 @@
    <widget class="QLabel" name="fileLabel">
     <property name="geometry">
      <rect>
-      <x>90</x>
-      <y>120</y>
-      <width>241</width>
+      <x>100</x>
+      <y>130</y>
+      <width>191</width>
       <height>41</height>
      </rect>
     </property>
@@ -224,7 +219,7 @@
      <bool>false</bool>
     </property>
     <property name="text">
-     <string>Choose file or ticker symbol</string>
+     <string>Choose ticker symbol</string>
     </property>
     <property name="scaledContents">
      <bool>true</bool>
@@ -233,40 +228,11 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="loadCSV">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>160</y>
-      <width>75</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="cursor">
-     <cursorShape>PointingHandCursor</cursorShape>
-    </property>
-    <property name="text">
-     <string>Load CSV</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="fileName">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>190</y>
-      <width>71</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>TextLabel</string>
-    </property>
-   </widget>
    <widget class="QLineEdit" name="tickerEdit">
     <property name="geometry">
      <rect>
-      <x>210</x>
-      <y>160</y>
+      <x>100</x>
+      <y>170</y>
       <width>113</width>
       <height>22</height>
      </rect>
