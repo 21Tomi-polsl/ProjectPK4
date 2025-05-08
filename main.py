@@ -56,17 +56,15 @@ class MainWindow(QMainWindow):
         else:
             m1 = Model(self.lista)
             list = m1.prepare_lstm()
-            m1.train_LSTM(list)
+            m1.train_LSTM(list, self.display_graph)
 
 #Yfinance API handling class
 class FinanceAPI:
     def __init__(self, ticker):
         self.ticker = yf.Ticker(ticker)
-        print(self.ticker)
 
     def gather_info(self):
-        data = self.ticker.history(period="1mo")
-        print(data)
+        data = self.ticker.history(period="30d")
         close_list = data["Close"].tolist()
         open_list = data["Open"].tolist()
         high_list = data["High"].tolist()
@@ -93,6 +91,7 @@ class Model:
 
         self.linRegList = []
         self.lstmlist = {}
+
 
 #Method for preparing variables for linear regression
     def prepare_linreg(self):
@@ -161,18 +160,39 @@ class Model:
 
         seq_length = 3
         X, y = create_sequences(scaled_data, seq_length)
-        return [X, y]
+        return [X, y, scaled_data, scaler]
 
-    def train_LSTM(self, list):
+    def train_LSTM(self, list, displayGraph):
         model = Sequential()
         X = list[0]
         y = list[1]
+        scaled_data = list[2]
+        scaler = list[3]
+
         model.add(LSTM(30, input_shape=(X.shape[1], X.shape[2])))
         model.add(Dense(1))
         model.compile(optimizer='adam', loss='mse')
         model.fit(X, y, epochs=20, batch_size=1)
-        pred = model.predict(X)
-        print(pred)
+
+        y_pred = model.predict(X)
+
+        y_pred_full = np.zeros((len(y_pred), scaled_data.shape[1]))
+        y_pred_full[:, 3] = y_pred[:, 0]
+        y_pred_original = scaler.inverse_transform(y_pred_full)[:, 3]
+
+
+        y_true_full = np.zeros((len(y), scaled_data.shape[1]))
+        y_true_full[:, 3] = y
+        y_true_original = scaler.inverse_transform(y_true_full)[:, 3]
+
+        if displayGraph:
+            plt.plot(y_true_original, label="True")
+            plt.plot(y_pred_original, label="Predict")
+            plt.xlabel("Sample")
+            plt.ylabel("Price")
+            plt.legend()
+            plt.grid(True)
+            plt.show()
 
 
 #Main function for running the app
