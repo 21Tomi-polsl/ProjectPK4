@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow
 from ui_mainwindow import Ui_MainWindow
 
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 
 from keras.models import Sequential
@@ -56,7 +56,8 @@ class MainWindow(QMainWindow):
         else:
             m1 = Model(self.lista)
             list = m1.prepare_lstm()
-            m1.train_LSTM(list, self.display_graph)
+            predicted_value = m1.train_LSTM(list, self.display_graph, self.display_error)
+            self.ui.label.setText(self.tick + " predicted value is " + str(predicted_value))
 
 #Yfinance API handling class
 class FinanceAPI:
@@ -64,7 +65,7 @@ class FinanceAPI:
         self.ticker = yf.Ticker(ticker)
 
     def gather_info(self):
-        data = self.ticker.history(period="30d")
+        data = self.ticker.history(period="2y")
         close_list = data["Close"].tolist()
         open_list = data["Open"].tolist()
         high_list = data["High"].tolist()
@@ -160,19 +161,20 @@ class Model:
 
         seq_length = 3
         X, y = create_sequences(scaled_data, seq_length)
-        return [X, y, scaled_data, scaler]
+        return [X, y, scaled_data, scaler, df]
 
-    def train_LSTM(self, list, displayGraph):
+    def train_LSTM(self, list, displayGraph, displayError):
         model = Sequential()
         X = list[0]
         y = list[1]
         scaled_data = list[2]
         scaler = list[3]
+        df = list[4]
 
         model.add(LSTM(30, input_shape=(X.shape[1], X.shape[2])))
         model.add(Dense(1))
         model.compile(optimizer='adam', loss='mse')
-        model.fit(X, y, epochs=20, batch_size=1)
+        model.fit(X, y, epochs=100, batch_size=1)
 
         y_pred = model.predict(X)
 
@@ -185,6 +187,7 @@ class Model:
         y_true_full[:, 3] = y
         y_true_original = scaler.inverse_transform(y_true_full)[:, 3]
 
+
         if displayGraph:
             plt.plot(y_true_original, label="True")
             plt.plot(y_pred_original, label="Predict")
@@ -194,6 +197,20 @@ class Model:
             plt.grid(True)
             plt.show()
 
+        last_days = df[-50:]
+        scale_data = scaler.transform(last_days)
+        inpt = np.array([scale_data])
+        new_pred = model.predict(inpt)
+        new_pred_full = np.zeros((1, scale_data.shape[1]))
+        new_pred_full[0,3] = new_pred[0,0]
+
+        if displayError:
+            mse = mean_squared_error(y_true_original, y_pred_original)
+            print(mse)
+
+        predicted_price = scaler.inverse_transform(new_pred_full)[0,3]
+
+        return round(predicted_price, 2)
 
 #Main function for running the app
 def main():
