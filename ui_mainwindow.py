@@ -16,8 +16,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QLabel,
-    QLineEdit, QMainWindow, QMenuBar, QPushButton,
-    QSizePolicy, QStatusBar, QWidget)
+    QLineEdit, QMainWindow, QPushButton, QSizePolicy,
+    QStatusBar, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -35,7 +35,7 @@ class Ui_MainWindow(object):
         self.load.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.label = QLabel(self.centralwidget)
         self.label.setObjectName(u"label")
-        self.label.setGeometry(QRect(90, 20, 431, 41))
+        self.label.setGeometry(QRect(90, 40, 431, 41))
         font1 = QFont()
         font1.setFamilies([u"Bahnschrift"])
         font1.setPointSize(20)
@@ -90,11 +90,13 @@ class Ui_MainWindow(object):
         self.tickerEdit.setGeometry(QRect(100, 170, 113, 22))
         self.tickerEdit.setMaxLength(5)
         self.tickerEdit.setClearButtonEnabled(False)
+        self.calculatedError = QLabel(self.centralwidget)
+        self.calculatedError.setObjectName(u"calculatedError")
+        self.calculatedError.setGeometry(QRect(230, 390, 161, 41))
+        self.helpButton = QPushButton(self.centralwidget)
+        self.helpButton.setObjectName(u"helpButton")
+        self.helpButton.setGeometry(QRect(520, 450, 75, 24))
         MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QMenuBar(MainWindow)
-        self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 600, 18))
-        MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
         MainWindow.setStatusBar(self.statusbar)
@@ -120,5 +122,7 @@ class Ui_MainWindow(object):
         self.chooseModel.setCurrentText(QCoreApplication.translate("MainWindow", u"Regresja liniowa", None))
         self.chooseModel.setPlaceholderText("")
         self.fileLabel.setText(QCoreApplication.translate("MainWindow", u"Choose ticker symbol", None))
+        self.calculatedError.setText("")
+        self.helpButton.setText(QCoreApplication.translate("MainWindow", u"Help", None))
     # retranslateUi
 

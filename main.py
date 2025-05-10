@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel
 from ui_mainwindow import Ui_MainWindow
 
 from sklearn.linear_model import LinearRegression
@@ -26,11 +26,10 @@ class MainWindow(QMainWindow):
         #Button functions
         self.ui.load.clicked.connect(self.collect_data)
         self.ui.trainModel.clicked.connect(self.start_train)
-
+        self.ui.helpButton.clicked.connect(self.show_help)
         #Checkbox functions
         self.display_graph = False
         self.display_error = False
-
 
 
     def collect_data(self):
@@ -54,10 +53,25 @@ class MainWindow(QMainWindow):
             predicted_value = m1.linear_regression(self.display_graph, self.display_error)
             self.ui.label.setText(self.tick+" predicted value is "+ str(predicted_value))
         else:
+            self.ui.label.setText("The model is being trained, please wait")
             m1 = Model(self.lista)
             list = m1.prepare_lstm()
             predicted_value = m1.train_LSTM(list, self.display_graph, self.display_error)
             self.ui.label.setText(self.tick + " predicted value is " + str(predicted_value))
+
+    def show_help(self):
+        self.w = HelpWindow()
+        self.w.show()
+
+class HelpWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        instruction = "1. Type in stock ticker\n2. Choose model type\n3. Add helper attributes(optional)\n4. Press load data to download stock info\n5. Wait for the announcement\n6. Press train model and wait for your prediction!"
+        self.label = QLabel(instruction)
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+
 
 #Yfinance API handling class
 class FinanceAPI:
@@ -65,7 +79,7 @@ class FinanceAPI:
         self.ticker = yf.Ticker(ticker)
 
     def gather_info(self):
-        data = self.ticker.history(period="2y")
+        data = self.ticker.history(period="1mo")
         close_list = data["Close"].tolist()
         open_list = data["Open"].tolist()
         high_list = data["High"].tolist()
@@ -174,7 +188,7 @@ class Model:
         model.add(LSTM(30, input_shape=(X.shape[1], X.shape[2])))
         model.add(Dense(1))
         model.compile(optimizer='adam', loss='mse')
-        model.fit(X, y, epochs=100, batch_size=1)
+        model.fit(X, y, epochs=20, batch_size=1)
 
         y_pred = model.predict(X)
 
