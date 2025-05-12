@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel
+from rich.jupyter import display
+
 from ui_mainwindow import Ui_MainWindow
 
 from sklearn.linear_model import LinearRegression
@@ -32,6 +34,10 @@ class MainWindow(QMainWindow):
         self.display_error = False
 
 
+    def print_error(self, error):
+        self.ui.calculatedError.setText("Model error: "+str(error))
+
+
     def collect_data(self):
         self.tick = self.ui.tickerEdit.text()
         self.display_graph = self.ui.graphBox.isChecked()
@@ -44,24 +50,28 @@ class MainWindow(QMainWindow):
             self.ui.label.setText("Input data is incorrect, try again!")
 
 
-
     def start_train(self):
         mod = self.ui.chooseModel.currentText()
         if mod == "Regresja liniowa":
             m1 = Model(self.lista)
             m1.prepare_linreg()
-            predicted_value = m1.linear_regression(self.display_graph, self.display_error)
-            self.ui.label.setText(self.tick+" predicted value is "+ str(predicted_value))
+            predicted_values = m1.linear_regression(self.display_graph, self.display_error)
+            self.ui.label.setText(self.tick+" predicted value is "+ str(predicted_values[0]))
+            if predicted_values[1] != 0:
+                self.print_error(predicted_values[1])
         else:
             self.ui.label.setText("The model is being trained, please wait")
             m1 = Model(self.lista)
             list = m1.prepare_lstm()
-            predicted_value = m1.train_LSTM(list, self.display_graph, self.display_error)
-            self.ui.label.setText(self.tick + " predicted value is " + str(predicted_value))
+            predicted_values = m1.train_LSTM(list, self.display_graph, self.display_error)
+            self.ui.label.setText(self.tick + " predicted value is " + str(predicted_values[0]))
+            if predicted_values[1] != 0:
+                self.print_error(predicted_values[1])
 
     def show_help(self):
         self.w = HelpWindow()
         self.w.show()
+
 
 class HelpWindow(QWidget):
     def __init__(self):
@@ -79,7 +89,7 @@ class FinanceAPI:
         self.ticker = yf.Ticker(ticker)
 
     def gather_info(self):
-        data = self.ticker.history(period="1mo")
+        data = self.ticker.history(period="1y")
         close_list = data["Close"].tolist()
         open_list = data["Open"].tolist()
         high_list = data["High"].tolist()
@@ -143,13 +153,16 @@ class Model:
             plt.grid(True)
             plt.show()
 
+        mae = 0
+
         if displayError:
             mae = mean_absolute_error(y, pred)
             print(mae)
 
+
         predicted_value = pred[-1]
         result = float(predicted_value[0])
-        return round(result, 2)
+        return [round(result, 2), round(mae, 2)]
 
     def prepare_lstm(self):
         self.lstmlist = {
@@ -173,7 +186,7 @@ class Model:
                 y.append(data[i+seq_len, 3])
             return np.array(X), np.array(y)
 
-        seq_length = 3
+        seq_length = 5
         X, y = create_sequences(scaled_data, seq_length)
         return [X, y, scaled_data, scaler, df]
 
@@ -188,7 +201,7 @@ class Model:
         model.add(LSTM(30, input_shape=(X.shape[1], X.shape[2])))
         model.add(Dense(1))
         model.compile(optimizer='adam', loss='mse')
-        model.fit(X, y, epochs=20, batch_size=1)
+        model.fit(X, y, epochs=150, batch_size=32)
 
         y_pred = model.predict(X)
 
@@ -218,13 +231,15 @@ class Model:
         new_pred_full = np.zeros((1, scale_data.shape[1]))
         new_pred_full[0,3] = new_pred[0,0]
 
+        mse = 0
+
         if displayError:
             mse = mean_squared_error(y_true_original, y_pred_original)
             print(mse)
 
         predicted_price = scaler.inverse_transform(new_pred_full)[0,3]
 
-        return round(predicted_price, 2)
+        return [round(predicted_price, 2), round(mse, 2)]
 
 #Main function for running the app
 def main():
