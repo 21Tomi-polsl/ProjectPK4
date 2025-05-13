@@ -3,6 +3,8 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import os
+import joblib
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel
 
@@ -11,6 +13,9 @@ from ui_mainwindow import Ui_MainWindow
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
+
+#File system handling
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = "0"
 
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
@@ -30,6 +35,7 @@ class MainWindow(QMainWindow):
         #Checkbox functions
         self.display_graph = False
         self.display_error = False
+        self.save_model = False
 
 #Function for displaying error on screen
     def print_error(self, error):
@@ -40,6 +46,7 @@ class MainWindow(QMainWindow):
         self.tick = self.ui.tickerEdit.text()
         self.display_graph = self.ui.graphBox.isChecked()
         self.display_error = self.ui.errorBox.isChecked()
+        self.save_model = self.ui.exportBox.isChecked()
         try:
             p1 = FinanceAPI(self.tick)
             self.lista = p1.gather_info()
@@ -54,7 +61,7 @@ class MainWindow(QMainWindow):
         if mod == "Regresja liniowa":
             m1 = Model(self.lista)
             m1.prepare_linreg()
-            predicted_values = m1.linear_regression(self.display_graph, self.display_error)
+            predicted_values = m1.linear_regression(self.display_graph, self.display_error, self.save_model)
             self.ui.label.setText(self.tick+" predicted value is "+ str(predicted_values[0]))
 
             if predicted_values[1] != 0:
@@ -64,7 +71,7 @@ class MainWindow(QMainWindow):
             self.ui.label.setText("The model is being trained, please wait")
             m1 = Model(self.lista)
             list = m1.prepare_lstm()
-            predicted_values = m1.train_LSTM(list, self.display_graph, self.display_error)
+            predicted_values = m1.train_LSTM(list, self.display_graph, self.display_error, self.save_model)
             self.ui.label.setText(self.tick + " predicted value is " + str(predicted_values[0]))
 
             if predicted_values[1] != 0:
@@ -146,7 +153,7 @@ class Model:
         self.linRegList = [self.open, self.openLow, self.openHigh, self.low, self.high, self.closeLow, self.closeHigh, self.close]
 
 
-    def linear_regression(self, displayGraph, displayError):
+    def linear_regression(self, displayGraph, displayError, saveToFile):
         data = {
             'x':[1,2,3,4,5,6,7,8],
             'y':self.linRegList}
@@ -171,6 +178,8 @@ class Model:
         else:
             mae = 0
 
+        if saveToFile:
+            joblib.dump(md, 'model.pkl')
 
         predicted_value = pred[-1]
         result = float(predicted_value[0])
@@ -203,7 +212,7 @@ class Model:
         X, y = create_sequences(scaled_data, seq_length)
         return [X, y, scaled_data, scaler, df]
 
-    def train_LSTM(self, list, displayGraph, displayError):
+    def train_LSTM(self, list, displayGraph, displayError, saveToFile):
         model = Sequential()
         X = list[0]
         y = list[1]
@@ -251,6 +260,9 @@ class Model:
             print(mse)
         else:
             mse = 0
+
+        if saveToFile:
+            joblib.dump(model, 'model.pkl')
 
         predicted_price = scaler.inverse_transform(new_pred_full)[0,3]
 
