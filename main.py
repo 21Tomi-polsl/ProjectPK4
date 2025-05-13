@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel
-from rich.jupyter import display
 
 from ui_mainwindow import Ui_MainWindow
 
@@ -15,7 +14,6 @@ from sklearn.preprocessing import MinMaxScaler
 
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
-
 
 
 class MainWindow(QMainWindow):
@@ -33,11 +31,11 @@ class MainWindow(QMainWindow):
         self.display_graph = False
         self.display_error = False
 
-
+#Function for displaying error on screen
     def print_error(self, error):
         self.ui.calculatedError.setText("Model error: "+str(error))
 
-
+#Function for collecting and parsing input data from the user
     def collect_data(self):
         self.tick = self.ui.tickerEdit.text()
         self.display_graph = self.ui.graphBox.isChecked()
@@ -49,35 +47,45 @@ class MainWindow(QMainWindow):
         except:
             self.ui.label.setText("Input data is incorrect, try again!")
 
-
+#Function for model training after input
     def start_train(self):
         mod = self.ui.chooseModel.currentText()
+
         if mod == "Regresja liniowa":
             m1 = Model(self.lista)
             m1.prepare_linreg()
             predicted_values = m1.linear_regression(self.display_graph, self.display_error)
             self.ui.label.setText(self.tick+" predicted value is "+ str(predicted_values[0]))
+
             if predicted_values[1] != 0:
                 self.print_error(predicted_values[1])
+
         else:
             self.ui.label.setText("The model is being trained, please wait")
             m1 = Model(self.lista)
             list = m1.prepare_lstm()
             predicted_values = m1.train_LSTM(list, self.display_graph, self.display_error)
             self.ui.label.setText(self.tick + " predicted value is " + str(predicted_values[0]))
+
             if predicted_values[1] != 0:
                 self.print_error(predicted_values[1])
 
+#Function for displaying instruction manual
     def show_help(self):
         self.w = HelpWindow()
         self.w.show()
 
-
+#Class for 2nd window/help window initialize and display
 class HelpWindow(QWidget):
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout()
-        instruction = "1. Type in stock ticker\n2. Choose model type\n3. Add helper attributes(optional)\n4. Press load data to download stock info\n5. Wait for the announcement\n6. Press train model and wait for your prediction!"
+        instruction = ("1. Type in stock ticker\n"
+                       "2. Choose model type\n"
+                       "3. Add helper attributes(optional)\n"
+                       "4. Press load data to download stock info\n"
+                       "5. Wait for the announcement\n"
+                       "6. Press train model and wait for your prediction!")
         self.label = QLabel(instruction)
         layout.addWidget(self.label)
         self.setLayout(layout)
@@ -88,8 +96,10 @@ class FinanceAPI:
     def __init__(self, ticker):
         self.ticker = yf.Ticker(ticker)
 
+#Function for gathering information from yahoo
     def gather_info(self):
         data = self.ticker.history(period="1y")
+
         close_list = data["Close"].tolist()
         open_list = data["Open"].tolist()
         high_list = data["High"].tolist()
@@ -120,8 +130,8 @@ class Model:
 
 #Method for preparing variables for linear regression
     def prepare_linreg(self):
-
         div = len(self.open)
+
         self.open = sum(self.open) / div
         self.close = sum(self.close) / div
         self.high = sum(self.high) / div
@@ -139,25 +149,27 @@ class Model:
     def linear_regression(self, displayGraph, displayError):
         data = {
             'x':[1,2,3,4,5,6,7,8],
-            'y':self.linRegList
-        }
+            'y':self.linRegList}
+
         df = pd.DataFrame(data)
         X = df[['x']]
         y = df[['y']]
+
         md = LinearRegression()
         md.fit(X, y)
         pred = md.predict(X)
+
         if displayGraph:
             plt.scatter(X, y, color='blue')
             plt.plot(X, pred, color='red')
             plt.grid(True)
             plt.show()
 
-        mae = 0
-
         if displayError:
             mae = mean_absolute_error(y, pred)
             print(mae)
+        else:
+            mae = 0
 
 
         predicted_value = pred[-1]
@@ -181,6 +193,7 @@ class Model:
         def create_sequences(data, seq_len):
             X = []
             y = []
+
             for i in range(len(data)-seq_len):
                 X.append(data[i:i+seq_len])
                 y.append(data[i+seq_len, 3])
@@ -227,15 +240,17 @@ class Model:
         last_days = df[-50:]
         scale_data = scaler.transform(last_days)
         inpt = np.array([scale_data])
+
         new_pred = model.predict(inpt)
         new_pred_full = np.zeros((1, scale_data.shape[1]))
         new_pred_full[0,3] = new_pred[0,0]
 
-        mse = 0
 
         if displayError:
             mse = mean_squared_error(y_true_original, y_pred_original)
             print(mse)
+        else:
+            mse = 0
 
         predicted_price = scaler.inverse_transform(new_pred_full)[0,3]
 
