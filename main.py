@@ -1,3 +1,4 @@
+#P.1 used modules
 import sys
 import yfinance as yf
 import matplotlib.pyplot as plt
@@ -5,6 +6,7 @@ import pandas as pd
 import numpy as np
 import os
 import joblib
+import re
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel
 
@@ -14,7 +16,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 
-#File system handling
+#P.3 Used filesystem for changing env variables (required for quality numerical predictions)
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = "0"
 
 from keras.models import Sequential
@@ -57,8 +59,8 @@ class MainWindow(QMainWindow):
 #Function for model training after input
     def start_train(self):
         mod = self.ui.chooseModel.currentText()
-
-        if mod == "Regresja liniowa":
+        #P.2 Used regex
+        if bool(re.search("Regresja liniowa", mod)):
             m1 = Model(self.lista)
             m1.prepare_linreg()
             predicted_values = m1.linear_regression(self.display_graph, self.display_error, self.save_model)
