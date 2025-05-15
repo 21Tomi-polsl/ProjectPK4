@@ -9,6 +9,7 @@ import joblib
 import re
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel
+from keras.src.ops import Inner
 
 from ui_mainwindow import Ui_MainWindow
 
@@ -42,6 +43,18 @@ class MainWindow(QMainWindow):
 #Function for displaying error on screen
     def print_error(self, error):
         self.ui.calculatedError.setText("Model error: "+str(error))
+#Decorator function for error handling
+    def error_handler(func):
+        def inner_function(*args, **kwargs):
+            mainWindow = args[0]
+            try:
+                func(*args, **kwargs)
+            except IndexError:
+                mainWindow.ui.label.setText("Please load data first!")
+            except ValueError:
+                mainWindow.ui.label.setText("No price data found, possibly delisted")
+
+        return inner_function
 
 #Function for collecting and parsing input data from the user
     def collect_data(self):
@@ -57,6 +70,7 @@ class MainWindow(QMainWindow):
             self.ui.label.setText("Input data is incorrect, try again!")
 
 #Function for model training after input
+    @error_handler
     def start_train(self):
         mod = self.ui.chooseModel.currentText()
         #P.2 Used regex
@@ -81,8 +95,11 @@ class MainWindow(QMainWindow):
 
 #Function for displaying instruction manual
     def show_help(self):
-        self.w = HelpWindow()
-        self.w.show()
+        try:
+            self.w = HelpWindow()
+            self.w.show()
+        except:
+            print("Failed to open help window")
 
 #Class for 2nd window/help window initialize and display
 class HelpWindow(QWidget):
@@ -269,6 +286,8 @@ class Model:
         predicted_price = scaler.inverse_transform(new_pred_full)[0,3]
 
         return [round(predicted_price, 2), round(mse, 2)]
+
+
 
 #Main function for running the app
 def main():
