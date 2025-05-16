@@ -1,28 +1,29 @@
 #P.1 used modules
 import sys
-import yfinance as yf
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import os
-import joblib
-import re
+#import yfinance as yf
+#import pandas as pd
+#import numpy as np
+#import re
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel
-from keras.src.ops import Inner
+from PySide6.QtCore import QTimer
 
 from ui_mainwindow import Ui_MainWindow
 
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.preprocessing import MinMaxScaler
 
-#P.3 Used filesystem for changing env variables (required for quality numerical predictions)
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = "0"
+from os import environ
+#P.3 Used filesystem for changing env variables (required for fixing floating point round-off error)
+environ['TF_ENABLE_ONEDNN_OPTS'] = "0"
 
-from keras.models import Sequential
-from keras.layers import LSTM, Dense
 
+def load_heavy():
+    global yf, pd, np, re
+    import yfinance as yf
+    import pandas as pd
+    import numpy as np
+    import re
+    print("Heavy stuff loaded")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -53,21 +54,22 @@ class MainWindow(QMainWindow):
                 mainWindow.ui.label.setText("Please load data first!")
             except ValueError:
                 mainWindow.ui.label.setText("No price data found, possibly delisted")
+            except Exception as e:
+                mainWindow.ui.label.setText("Something went wrong...")
+                print(e)
 
         return inner_function
 
 #Function for collecting and parsing input data from the user
+    @error_handler
     def collect_data(self):
         self.tick = self.ui.tickerEdit.text()
         self.display_graph = self.ui.graphBox.isChecked()
         self.display_error = self.ui.errorBox.isChecked()
         self.save_model = self.ui.exportBox.isChecked()
-        try:
-            p1 = FinanceAPI(self.tick)
-            self.lista = p1.gather_info()
-            self.ui.label.setText("Your "+self.tick+" data is ready to be used!")
-        except:
-            self.ui.label.setText("Input data is incorrect, try again!")
+        p1 = FinanceAPI(self.tick)
+        self.lista = p1.gather_info()
+        self.ui.label.setText("Your "+self.tick+" data is ready to be used!")
 
 #Function for model training after input
     @error_handler
@@ -124,8 +126,9 @@ class FinanceAPI:
 
 #Function for gathering information from yahoo
     def gather_info(self):
-        data = self.ticker.history(period="1y")
-
+        data = self.ticker.history(period="2y")
+        if data is None or data.empty:
+            raise (ValueError("Ticker does not exist, may be delisted"))
         close_list = data["Close"].tolist()
         open_list = data["Open"].tolist()
         high_list = data["High"].tolist()
@@ -173,6 +176,7 @@ class Model:
 
 
     def linear_regression(self, displayGraph, displayError, saveToFile):
+        from sklearn.linear_model import LinearRegression
         data = {
             'x':[1,2,3,4,5,6,7,8],
             'y':self.linRegList}
@@ -186,19 +190,22 @@ class Model:
         pred = md.predict(X)
 
         if displayGraph:
+            import matplotlib.pyplot as plt
             plt.scatter(X, y, color='blue')
             plt.plot(X, pred, color='red')
             plt.grid(True)
             plt.show()
 
         if displayError:
+            from sklearn.metrics import mean_absolute_error
             mae = mean_absolute_error(y, pred)
             print(mae)
         else:
             mae = 0
 
         if saveToFile:
-            joblib.dump(md, 'model.pkl')
+            from joblib import dump
+            dump(md, 'model.pkl')
 
         predicted_value = pred[-1]
         result = float(predicted_value[0])
@@ -227,11 +234,13 @@ class Model:
                 y.append(data[i+seq_len, 3])
             return np.array(X), np.array(y)
 
-        seq_length = 5
+        seq_length = 29
         X, y = create_sequences(scaled_data, seq_length)
         return [X, y, scaled_data, scaler, df]
 
     def train_LSTM(self, list, displayGraph, displayError, saveToFile):
+        from keras.models import Sequential
+        from keras.layers import LSTM, Dense
         model = Sequential()
         X = list[0]
         y = list[1]
@@ -242,7 +251,7 @@ class Model:
         model.add(LSTM(30, input_shape=(X.shape[1], X.shape[2])))
         model.add(Dense(1))
         model.compile(optimizer='adam', loss='mse')
-        model.fit(X, y, epochs=150, batch_size=32)
+        model.fit(X, y, epochs=50, batch_size=32)
 
         y_pred = model.predict(X)
 
@@ -257,6 +266,7 @@ class Model:
 
 
         if displayGraph:
+            import matplotlib.pyplot as plt
             plt.plot(y_true_original, label="True")
             plt.plot(y_pred_original, label="Predict")
             plt.xlabel("Sample")
@@ -265,7 +275,7 @@ class Model:
             plt.grid(True)
             plt.show()
 
-        last_days = df[-50:]
+        last_days = df[-100:]
         scale_data = scaler.transform(last_days)
         inpt = np.array([scale_data])
 
@@ -275,13 +285,16 @@ class Model:
 
 
         if displayError:
+            from sklearn.metrics import mean_squared_error
             mse = mean_squared_error(y_true_original, y_pred_original)
             print(mse)
         else:
             mse = 0
 
+
         if saveToFile:
-            joblib.dump(model, 'model.pkl')
+            from joblib import dump
+            dump(model, 'model.pkl')
 
         predicted_price = scaler.inverse_transform(new_pred_full)[0,3]
 
@@ -294,7 +307,10 @@ def main():
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
+    QTimer.singleShot(0, load_heavy)
     sys.exit(app.exec())
+
+
 
 if __name__ == "__main__":
     main()
