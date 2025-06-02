@@ -12,6 +12,8 @@ from ui_mainwindow import Ui_MainWindow
 
 from sklearn.preprocessing import MinMaxScaler
 
+from threading import Thread
+
 from os import environ
 #P.3 Used filesystem for changing env variables (required for fixing floating point round-off error)
 environ['TF_ENABLE_ONEDNN_OPTS'] = "0"
@@ -86,14 +88,17 @@ class MainWindow(QMainWindow):
                 self.print_error(predicted_values[1])
 
         else:
-            self.ui.label.setText("The model is being trained, please wait")
-            m1 = Model(self.lista)
-            list = m1.prepare_lstm()
-            predicted_values = m1.train_LSTM(list, self.display_graph, self.display_error, self.save_model)
-            self.ui.label.setText(self.tick + " predicted value is " + str(predicted_values[0]))
+            self.ui.label.setText("Training model, please wait...")
+            def background_training():
+                m1 = Model(self.lista)
+                list = m1.prepare_lstm()
+                predicted_values = m1.train_LSTM(list, self.display_graph, self.display_error, self.save_model)
+                self.ui.label.setText(self.tick + " predicted value is " + str(predicted_values[0]))
 
-            if predicted_values[1] != 0:
-                self.print_error(predicted_values[1])
+                if predicted_values[1] != 0:
+                    self.print_error(predicted_values[1])
+
+            Thread(target=background_training).start()
 
 #Function for displaying instruction manual
     def show_help(self):
@@ -234,7 +239,7 @@ class Model:
                 y.append(data[i+seq_len, 3])
             return np.array(X), np.array(y)
 
-        seq_length = 29
+        seq_length = 59
         X, y = create_sequences(scaled_data, seq_length)
         return [X, y, scaled_data, scaler, df]
 
@@ -251,7 +256,7 @@ class Model:
         model.add(LSTM(30, input_shape=(X.shape[1], X.shape[2])))
         model.add(Dense(1))
         model.compile(optimizer='adam', loss='mse')
-        model.fit(X, y, epochs=50, batch_size=32)
+        model.fit(X, y, epochs=100, batch_size=8)
 
         y_pred = model.predict(X)
 
